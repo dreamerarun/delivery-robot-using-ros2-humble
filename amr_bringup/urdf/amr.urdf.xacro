@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<robot name="amr" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:include filename="$(find amr_bringup)/urdf/wheel.xacro"/>
+  <xacro:include filename="$(find amr_bringup)/urdf/sensors.xacro"/>
+
+  <link name="base_footprint"/>
+
+  <link name="base_link">
+    <visual>
+      <geometry><box size="0.20 0.15 0.06"/></geometry>
+      <material name="blue"><color rgba="0.1 0.2 0.8 1"/></material>
+    </visual>
+    <collision>
+      <geometry><box size="0.20 0.15 0.06"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.6"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.002" iyz="0" izz="0.002"/>
+    </inertial>
+  </link>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0.04" rpy="0 0 0"/>
+  </joint>
+
+  <!-- wheel_separation here (0.18 m between y=+0.09 / y=-0.09) must match
+       config/motor_params.yaml's wheel_separation on the bringup side -->
+  <xacro:wheel prefix="left"  x_pos="0" y_pos="0.09"/>
+  <xacro:wheel prefix="right" x_pos="0" y_pos="-0.09"/>
+
+  <link name="caster_wheel">
+    <visual><geometry><sphere radius="0.015"/></geometry></visual>
+    <collision><geometry><sphere radius="0.015"/></geometry></collision>
+    <inertial>
+      <mass value="0.02"/>
+      <inertia ixx="0.000005" ixy="0" ixz="0" iyy="0.000005" iyz="0" izz="0.000005"/>
+    </inertial>
+  </link>
+
+  <joint name="caster_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="caster_wheel"/>
+    <origin xyz="-0.08 0 -0.02" rpy="0 0 0"/>
+  </joint>
+
+</robot>

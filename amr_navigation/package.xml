@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>amr_navigation</name>
+  <version>0.0.1</version>
+  <description>SLAM (slam_toolbox) and autonomous navigation (Nav2) for the AMR. Runs on the laptop — the heavy compute the Pi 3B cannot handle. Consumes /scan, /odometry/filtered, and TF published remotely by amr_bringup.</description>
+  <maintainer email="you@example.com">Arun</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>robot_localization</exec_depend>
+  <exec_depend>rf2o_laser_odometry</exec_depend>
+  <exec_depend>slam_toolbox</exec_depend>
+  <exec_depend>nav2_bringup</exec_depend>
+  <exec_depend>nav2_map_server</exec_depend>
+  <exec_depend>nav2_amcl</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>teleop_twist_keyboard</exec_depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

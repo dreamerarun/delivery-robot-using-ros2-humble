@@ -1,0 +1,1212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AMR console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:ital,wght@1,500&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light dark;
+  --paper:#EDEFE9;--panel:#F8F8F4;--ink:#17232C;--ink2:#55636D;--line:#D3D8D0;
+  --teal:#1E6C74;--onteal:#FFFFFF;--orange:#DD5A14;--plum:#7A4A7E;--red:#C62F2F;--green:#2E7D4F;--amber:#B7791F;
+  --free:#FFFFFF;--unknown:#E1E5DC;--wall:#17232C}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#0E1A22;--panel:#152531;--ink:#E7EDF0;--ink2:#95A6B1;--line:#28394A;
+  --teal:#5FBAC4;--onteal:#0E1A22;--orange:#FF7F45;--plum:#C79ACB;--red:#E5534B;--green:#5CB985;--amber:#E0AE4B;
+  --free:#1B2E3B;--unknown:#0E1A22;--wall:#DCE6EA}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--paper);color:var(--ink);font:14px/1.45 'Hanken Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-variant-numeric:tabular-nums;display:flex;flex-direction:column;overflow:hidden}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+
+.bar{display:flex;align-items:center;gap:18px;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px;letter-spacing:.1px}
+.brand i{width:14px;height:14px;border-radius:50% 50% 50% 0;background:var(--orange);transform:rotate(-45deg);display:inline-block}
+.link{display:flex;gap:6px;align-items:center}
+.link input{width:210px;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--paper)}
+.status{display:flex;align-items:center;gap:7px;color:var(--ink2)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--ink2)}
+.dot.online{background:var(--green)}.dot.connecting{background:var(--amber)}.dot.offline{background:var(--red)}
+.readouts{display:flex;gap:18px;flex-wrap:wrap;align-items:baseline;margin-left:auto}
+.readouts b{font-weight:600}
+.pose{font-size:15px;font-weight:600}
+.grow{flex:1}
+.estop{background:var(--red);color:#fff;border:0;border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer}
+.estop.latched{background:transparent;color:var(--red);border:2px solid var(--red)}
+.banner{background:var(--red);color:#fff;padding:8px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.banner button{background:#fff;color:var(--red);border:0;border-radius:6px;padding:5px 12px;font-weight:600;cursor:pointer}
+
+main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 400px}
+.stage{position:relative;min-height:0;background:var(--unknown);overflow:hidden}
+#map{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+.tools{position:absolute;top:12px;left:12px;display:flex;flex-direction:column;gap:2px;padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.tools button{width:40px;height:40px;border:0;background:transparent;border-radius:7px;cursor:pointer;display:grid;place-items:center;color:var(--ink)}
+.tools button:hover{background:var(--paper)}
+.tools button[aria-pressed=true]{background:var(--teal);color:var(--onteal)}
+.tools hr{width:26px;border:0;border-top:1px solid var(--line);margin:3px auto}
+.tools svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.hint{position:absolute;top:12px;left:64px;right:12px;max-width:520px;padding:7px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--ink2)}
+.cursor{position:absolute;left:14px;bottom:10px;color:var(--ink2);background:color-mix(in srgb,var(--panel) 85%,transparent);padding:2px 8px;border-radius:6px}
+.radar{position:absolute;right:12px;bottom:12px;background:color-mix(in srgb,var(--panel) 90%,transparent);border:1px solid var(--line);border-radius:10px;padding:6px 8px 8px}
+.radar canvas{display:block;width:170px;height:170px}
+.radar p{margin:4px 0 0;font-size:12px;color:var(--ink2);text-align:center}
+.finish{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:6px;padding:6px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+
+.side{border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;padding:11px 4px;border:0;background:transparent;cursor:pointer;color:var(--ink2);font-weight:600;border-bottom:3px solid transparent}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--teal)}
+.panel{padding:6px 18px 24px;overflow:auto;min-height:0;flex:1}
+h3{font-size:14px;font-weight:700;margin:22px 0 8px;padding-top:16px;border-top:1px solid var(--line)}
+.panel>h3:first-child{border-top:0;padding-top:10px;margin-top:8px}
+.note{color:var(--ink2);margin:6px 0}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.btn{border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:7px 12px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--ink2)}
+.btn.primary{background:var(--teal);border-color:var(--teal);color:var(--onteal);font-weight:600}
+.btn.sm{padding:4px 9px;font-size:13px}
+.btn.danger{color:var(--red)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.field{display:grid;grid-template-columns:96px 1fr 62px;gap:10px;align-items:center;margin:8px 0}
+.field.col{grid-template-columns:1fr;gap:4px}
+.field output{text-align:right;color:var(--ink2)}
+input[type=text],input[type=number],select{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--paper)}
+input[type=range]{width:100%;accent-color:var(--teal)}
+input[type=checkbox]{accent-color:var(--teal)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.grid3 label{display:grid;gap:3px;color:var(--ink2);font-size:13px}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}
+.checks label{display:flex;gap:7px;align-items:center}
+.joyrow{display:flex;gap:20px;align-items:center;margin:12px 0 4px}
+.joy{position:relative;width:172px;height:172px;border-radius:50%;border:2px solid var(--line);background:var(--paper);touch-action:none;flex:none;cursor:grab}
+.joy::before,.joy::after{content:"";position:absolute;background:var(--line)}
+.joy::before{left:50%;top:10px;bottom:10px;width:1px}
+.joy::after{top:50%;left:10px;right:10px;height:1px}
+.knob{position:absolute;left:50%;top:50%;width:62px;height:62px;border-radius:50%;background:var(--teal);transform:translate(-50%,-50%);z-index:1}
+.vals{margin:0;display:grid;gap:8px}
+.vals div{display:grid}
+.vals dt{color:var(--ink2);font-size:13px}
+.vals dd{margin:0;font-size:17px;font-weight:600}
+.limit{min-height:20px;margin:4px 0;color:var(--amber);font-weight:600}
+.locbar{height:8px;border-radius:5px;background:var(--line);overflow:hidden}
+.locbar i{display:block;height:100%;width:0;background:var(--green);transition:width .3s}
+.nudge{display:grid;grid-template-columns:repeat(3,52px);gap:6px;margin:10px 0}
+.nudge button{height:42px;border:1px solid var(--line);background:var(--paper);border-radius:8px;cursor:pointer;font-size:18px}
+.nudge button:hover{border-color:var(--ink2)}
+ul.list,ul.rooms,ul.health{list-style:none;margin:8px 0;padding:0}
+ul.list li{margin:4px 0}
+ul.list button{width:100%;text-align:left;border:1px solid var(--line);background:var(--paper);border-radius:7px;padding:6px 9px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ul.rooms li{border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0}
+ul.rooms li.sel{border-color:var(--teal);box-shadow:inset 3px 0 0 var(--teal)}
+.roomtop{display:flex;gap:8px;align-items:center}
+.roomtop .sw{width:14px;height:14px;border-radius:4px;flex:none}
+.roomtop input[type=text]{font-family:'Newsreader',Georgia,serif;font-style:italic;font-size:17px;padding:4px 8px}
+.roomact{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.roomact .tour{display:flex;gap:5px;align-items:center;margin-left:auto;color:var(--ink2);font-size:13px}
+ul.health li{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-bottom:1px dashed var(--line)}
+ul.health .ok{color:var(--green);font-weight:600}
+ul.health .bad{color:var(--red);font-weight:600}
+code.cmd{display:block;padding:8px 10px;background:var(--paper);border:1px solid var(--line);border-radius:7px;overflow-x:auto;white-space:pre;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;margin:6px 0}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);max-width:min(560px,92vw);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:9px;z-index:10;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.toast.warn{background:var(--amber);color:#fff}
+.toast.err{background:var(--red);color:#fff}
+
+@media (max-width:900px){
+  body{overflow:auto;height:auto;min-height:100%}
+  main{grid-template-columns:1fr;grid-template-rows:58vh auto;flex:none}
+  .side{border-left:0;border-top:1px solid var(--line)}
+  .readouts{margin-left:0;gap:12px}
+  .link input{width:150px}
+  .radar canvas{width:120px;height:120px}
+  .hint{max-width:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-pan" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></symbol>
+  <symbol id="i-goal" viewBox="0 0 24 24"><path d="M6 21V4M6 4h11l-2.5 4L17 12H6"/></symbol>
+  <symbol id="i-pose" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></symbol>
+  <symbol id="i-room" viewBox="0 0 24 24"><path d="M4 6l9-2 7 5-2 10-11 1z"/></symbol>
+  <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+</svg>
+
+<header class="bar">
+  <div class="brand"><i aria-hidden="true"></i>AMR console</div>
+  <form class="link" id="linkForm">
+    <input id="wsUrl" type="text" aria-label="Rosbridge address" placeholder="ws://laptop-ip:9090" autocomplete="off">
+    <button class="btn sm" id="btnConnect" type="submit">Connect</button>
+  </form>
+  <div class="status"><span class="dot offline" id="linkDot"></span><span id="linkText">Offline</span></div>
+  <div class="readouts">
+    <span id="modeText">Mode unknown</span>
+    <span class="pose" id="poseText">Position unknown</span>
+    <span id="navText">Idle</span>
+  </div>
+  <button class="estop" id="btnEstop" type="button">Emergency stop</button>
+</header>
+<div class="banner" id="estopBanner" hidden role="alert">
+  <b>Stopped.</b><span>The robot will not accept drive commands or goals until you release the stop. This is a software stop; it does not cut motor power.</span>
+  <button id="btnRelease" type="button">Release stop</button>
+</div>
+
+<main>
+  <section class="stage" id="stage" aria-label="Map">
+    <canvas id="map"></canvas>
+    <div class="tools" role="toolbar" aria-label="Map tools">
+      <button data-tool="pan" aria-pressed="true" title="Move the map" aria-label="Move the map"><svg><use href="#i-pan"/></svg></button>
+      <button data-tool="goal" aria-pressed="false" title="Send the robot to a point" aria-label="Send the robot to a point"><svg><use href="#i-goal"/></svg></button>
+      <button data-tool="pose" aria-pressed="false" title="Correct the robot's position" aria-label="Correct the robot's position"><svg><use href="#i-pose"/></svg></button>
+      <button data-tool="room" aria-pressed="false" title="Draw a room" aria-label="Draw a room"><svg><use href="#i-room"/></svg></button>
+      <hr>
+      <button id="btnFit" title="Fit the map to the screen" aria-label="Fit the map to the screen"><svg><use href="#i-fit"/></svg></button>
+    </div>
+    <div class="hint" id="hint"></div>
+    <div class="cursor" id="cursorText">x — y —</div>
+    <div class="radar"><canvas id="radar" aria-label="Nearby obstacles"></canvas><p id="radarText">No lidar data</p></div>
+    <div class="finish" id="roomFinish" hidden>
+      <button class="btn primary sm" id="btnRoomDone" type="button">Finish room</button>
+      <button class="btn sm" id="btnRoomUndo" type="button">Undo corner</button>
+      <button class="btn sm" id="btnRoomCancel" type="button">Cancel</button>
+    </div>
+  </section>
+
+  <aside class="side">
+    <div class="tabs" role="tablist" aria-label="Controls">
+      <button role="tab" id="t-drive" aria-selected="true" aria-controls="p-drive">Drive</button>
+      <button role="tab" id="t-loc" aria-selected="false" aria-controls="p-loc">Localize</button>
+      <button role="tab" id="t-maps" aria-selected="false" aria-controls="p-maps">Maps</button>
+      <button role="tab" id="t-rooms" aria-selected="false" aria-controls="p-rooms">Rooms</button>
+      <button role="tab" id="t-safe" aria-selected="false" aria-controls="p-safe">Safety</button>
+      <button role="tab" id="t-setup" aria-selected="false" aria-controls="p-setup">Setup</button>
+    </div>
+
+    <!-- Drive -->
+    <div class="panel" id="p-drive" role="tabpanel" aria-labelledby="t-drive">
+      <div class="joyrow">
+        <div class="joy" id="joy" role="application" aria-label="Drive stick. Drag to drive the robot."><div class="knob" id="knob"></div></div>
+        <dl class="vals">
+          <div><dt>Forward</dt><dd><span id="vxText">0.00</span> m/s</dd></div>
+          <div><dt>Turning</dt><dd><span id="wzText">0.00</span> rad/s</dd></div>
+          <div><dt>Measured speed</dt><dd><span id="mvText">0.00</span> m/s</dd></div>
+        </dl>
+      </div>
+      <p class="limit" id="limitText" aria-live="polite"></p>
+      <label class="field"><span>Top speed</span><input type="range" data-cfg="maxLin" min="0.05" max="0.3" step="0.01"><output data-for="maxLin" data-unit=" m/s" data-d="2"></output></label>
+      <label class="field"><span>Turn rate</span><input type="range" data-cfg="maxAng" min="0.2" max="1.5" step="0.05"><output data-for="maxAng" data-unit=" rad/s" data-d="2"></output></label>
+      <p class="note">Drive with W A S D or the arrow keys. Space is the emergency stop.</p>
+
+      <h3>Send the robot to a point</h3>
+      <div class="grid3">
+        <label>x (m)<input type="number" id="goalX" step="0.05" value="0"></label>
+        <label>y (m)<input type="number" id="goalY" step="0.05" value="0"></label>
+        <label>Heading (°)<input type="number" id="goalYaw" step="5" value="0"></label>
+      </div>
+      <div class="btnrow">
+        <button class="btn primary" id="btnGoXY" type="button">Go</button>
+        <button class="btn" id="btnCancelGoal" type="button">Cancel goal</button>
+        <button class="btn" id="btnFillHere" type="button">Use current position</button>
+      </div>
+      <p class="note" id="goalInfo">You can also pick the flag tool on the map and drag to aim.</p>
+    </div>
+
+    <!-- Localize -->
+    <div class="panel" id="p-loc" role="tabpanel" aria-labelledby="t-loc" hidden>
+      <h3>How sure is the robot about where it is?</h3>
+      <div class="locbar"><i id="locFill"></i></div>
+      <p class="note" id="locText">Waiting for a position estimate.</p>
+      <div class="btnrow">
+        <button class="btn primary" id="btnPoseTool" type="button">Set position on map</button>
+        <button class="btn" id="btnGlobal" type="button">Relocalize from scratch</button>
+        <button class="btn" id="btnSpin" type="button">Spin to converge</button>
+      </div>
+      <p class="note">Set position: press where the robot really is, then drag toward the way it faces. Relocalize scatters the estimate across the whole map; follow it with a spin.</p>
+
+      <h3>Nudge the estimate</h3>
+      <p class="note">Shifts where the robot thinks it is. The robot does not move. Directions match the map view.</p>
+      <div class="nudge">
+        <button data-nudge="th:1" aria-label="Rotate estimate counter-clockwise">↺</button>
+        <button data-nudge="y:1" aria-label="Move estimate up">↑</button>
+        <button data-nudge="th:-1" aria-label="Rotate estimate clockwise">↻</button>
+        <button data-nudge="x:-1" aria-label="Move estimate left">←</button>
+        <span></span>
+        <button data-nudge="x:1" aria-label="Move estimate right">→</button>
+        <span></span>
+        <button data-nudge="y:-1" aria-label="Move estimate down">↓</button>
+        <span></span>
+      </div>
+      <div class="grid3">
+        <label>Step<select data-cfg="nudgeXY" data-num="1"><option value="0.02">2 cm</option><option value="0.05">5 cm</option><option value="0.1">10 cm</option><option value="0.25">25 cm</option></select></label>
+        <label>Turn step<select data-cfg="nudgeDeg" data-num="1"><option value="1">1°</option><option value="3">3°</option><option value="5">5°</option><option value="10">10°</option></select></label>
+      </div>
+    </div>
+
+    <!-- Maps -->
+    <div class="panel" id="p-maps" role="tabpanel" aria-labelledby="t-maps" hidden>
+      <p class="note" id="modeHint"></p>
+      <h3>Robot software</h3>
+      <p class="note" id="stackStatus">Status unknown. Bringup and rosbridge should already be running on the Pi and laptop.</p>
+      <div class="btnrow">
+        <button class="btn primary" id="btnStartMapping" type="button">Start mapping</button>
+        <button class="btn primary" id="btnStartNav" type="button">Start navigation</button>
+        <button class="btn danger" id="btnStopStack" type="button">Stop</button>
+      </div>
+      <p class="note">Starts or stops slam_toolbox or the Nav2 stack for you. Navigation uses the map file path below. Requires the launch-manager node running alongside rosbridge.</p>
+
+      <h3>Build a map</h3>
+      <p class="note">Start mapping above, then drive the robot around on the Drive tab.</p>
+      <label class="field col"><span>Map name</span><input type="text" data-cfg="mapName" placeholder="my_map" autocomplete="off"></label>
+      <label class="field col"><span>Folder on the laptop (full path)</span><input type="text" data-cfg="mapDir" placeholder="/home/you/ros_ws/src/amr_navigation/maps" autocomplete="off"></label>
+      <div class="btnrow">
+        <button class="btn primary" id="btnSaveSlam" type="button">Save map</button>
+        <button class="btn" id="btnSaveGraph" type="button">Save pose graph</button>
+        <button class="btn" id="btnDownload" type="button">Download PGM + YAML</button>
+      </div>
+      <p class="note" id="mapStats">No map received yet.</p>
+
+      <h3>Open a saved map for navigation</h3>
+      <label class="field col"><span>Map file (.yaml, full path on the laptop)</span><input type="text" data-cfg="mapUrl" placeholder="/home/you/ros_ws/src/amr_navigation/maps/my_map.yaml" autocomplete="off"></label>
+      <div class="btnrow">
+        <button class="btn primary" id="btnLoadMap" type="button">Load map</button>
+        <button class="btn" id="btnRefreshMap" type="button">Refresh view</button>
+      </div>
+      <ul class="list" id="recentMaps" aria-label="Recent maps"></ul>
+
+      <h3>Show on the map</h3>
+      <div class="checks">
+        <label><input type="checkbox" data-cfg="showScan"> Lidar scan</label>
+        <label><input type="checkbox" data-cfg="showPlan"> Planned path</label>
+        <label><input type="checkbox" data-cfg="showCost"> Obstacle margins</label>
+        <label><input type="checkbox" data-cfg="showParticles"> Position particles</label>
+        <label><input type="checkbox" data-cfg="showRooms"> Rooms</label>
+        <label><input type="checkbox" data-cfg="showGrid"> Grid</label>
+        <label><input type="checkbox" data-cfg="follow"> Follow robot</label>
+      </div>
+    </div>
+
+    <!-- Rooms -->
+    <div class="panel" id="p-rooms" role="tabpanel" aria-labelledby="t-rooms" hidden>
+      <h3>Rooms</h3>
+      <p class="note">Rooms are saved in this browser for the map named <b id="roomMapName"></b>. Change the name on the Maps tab.</p>
+      <div class="btnrow">
+        <button class="btn primary" id="btnDrawRoom" type="button">Draw a room</button>
+        <button class="btn" id="btnExportRooms" type="button">Export</button>
+        <button class="btn" id="btnImportRooms" type="button">Import</button>
+        <input type="file" id="fileRooms" accept="application/json" hidden>
+      </div>
+      <ul class="rooms" id="roomList"></ul>
+
+      <h3>Tour</h3>
+      <p class="note">Visits every room ticked "Tour", in the order listed.</p>
+      <label class="field"><span>Wait in each</span><input type="range" data-cfg="dwell" min="0" max="30" step="1"><output data-for="dwell" data-unit=" s" data-d="0"></output></label>
+      <div class="btnrow">
+        <button class="btn primary" id="btnTour" type="button">Start tour</button>
+        <button class="btn" id="btnTourStop" type="button">Stop tour</button>
+      </div>
+      <p class="note" id="tourText"></p>
+    </div>
+
+    <!-- Safety -->
+    <div class="panel" id="p-safe" role="tabpanel" aria-labelledby="t-safe" hidden>
+      <h3>Collision avoidance while you drive</h3>
+      <label class="field col"><span>Assist</span>
+        <select data-cfg="assist"><option value="off">Off</option><option value="stop">Slow down and stop</option><option value="steer">Slow, stop, and steer around</option></select>
+      </label>
+      <label class="field"><span>Stop within</span><input type="range" data-cfg="stopDist" min="0.1" max="1" step="0.05"><output data-for="stopDist" data-unit=" m" data-d="2"></output></label>
+      <label class="field"><span>Slow within</span><input type="range" data-cfg="slowDist" min="0.3" max="2" step="0.05"><output data-for="slowDist" data-unit=" m" data-d="2"></output></label>
+      <label class="field"><span>Watch angle</span><input type="range" data-cfg="cone" min="15" max="70" step="1"><output data-for="cone" data-unit="°" data-d="0"></output></label>
+      <p class="note">The watch angle is the width of the wedge, either side of the direction of travel, that is checked for obstacles. If lidar data stops arriving, driving forward and backward is blocked.</p>
+
+      <h3>Guard while navigating</h3>
+      <label class="checks" style="grid-template-columns:1fr"><span style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-cfg="guard"> Stop the robot and cancel the goal when it is moving toward an obstacle closer than the distance below</span></label>
+      <label class="field"><span>Trip distance</span><input type="range" data-cfg="guardDist" min="0.1" max="0.8" step="0.05"><output data-for="guardDist" data-unit=" m" data-d="2"></output></label>
+      <p class="note">This watches the robot's real movement from odometry, so it also covers goals sent from other tools.</p>
+
+      <h3>Obstacle margins in Nav2</h3>
+      <label class="field"><span>Keep-away</span><input type="range" id="inflate" min="0.15" max="0.8" step="0.01" value="0.30"><output id="inflateOut"></output></label>
+      <div class="btnrow">
+        <button class="btn primary" id="btnInflate" type="button">Apply to both costmaps</button>
+        <button class="btn" id="btnClearCost" type="button">Clear costmaps</button>
+      </div>
+      <p class="note">Keep-away sets the inflation radius. Larger values make paths stay further from walls. The lowest value is just above your 0.13 m robot radius. Clearing costmaps removes obstacles left behind by moved objects.</p>
+
+      <h3>Nav2 speed limits</h3>
+      <label class="field"><span>Max speed</span><input type="range" id="navSpeed" min="0.05" max="0.3" step="0.01" value="0.3"><output id="navSpeedOut"></output></label>
+      <label class="field"><span>Max turn rate</span><input type="range" id="navTurn" min="0.3" max="1.5" step="0.05" value="1.5"><output id="navTurnOut"></output></label>
+      <div class="btnrow">
+        <button class="btn primary" id="btnNavSpeed" type="button">Apply to the controller</button>
+      </div>
+      <p class="note">Sets the DWB controller's max_vel_x / max_speed_xy and max_vel_theta on the controller_server. Your velocity smoother caps at 0.30 m/s and 1.5 rad/s, so the sliders stop there. Changes last until Nav2 restarts; edit nav2_params.yaml to keep them.</p>
+    </div>
+
+    <!-- Setup -->
+    <div class="panel" id="p-setup" role="tabpanel" aria-labelledby="t-setup" hidden>
+      <h3>Connect to the robot</h3>
+      <p class="note">On the laptop, install and start rosbridge, then press Connect above.</p>
+      <code class="cmd">sudo apt install ros-humble-rosbridge-suite</code>
+      <code class="cmd">ros2 launch rosbridge_server rosbridge_websocket_launch.xml</code>
+      <div class="btnrow"><button class="btn sm" id="btnCopyRb" type="button">Copy launch command</button></div>
+
+      <h3>Data arriving from the robot</h3>
+      <ul class="health" id="health"></ul>
+      <p class="note">If a topic exists but stays silent here, check its QoS with <b>ros2 topic info -v</b>. Best-effort sensor topics need a matching rosbridge version.</p>
+
+      <h3>Topics and frames</h3>
+      <label class="field col"><span>Drive commands</span><input type="text" data-cfg="cmdVel"></label>
+      <label class="field col"><span>Lidar scan</span><input type="text" data-cfg="scan"></label>
+      <label class="field col"><span>Odometry</span><input type="text" data-cfg="odom"></label>
+      <label class="field col"><span>Map</span><input type="text" data-cfg="mapTopic"></label>
+      <label class="field col"><span>Goal pose</span><input type="text" data-cfg="goalPose"></label>
+      <label class="field col"><span>Initial pose</span><input type="text" data-cfg="initialPose"></label>
+      <label class="field col"><span>Map frame</span><input type="text" data-cfg="mapFrame"></label>
+      <label class="field col"><span>Robot frame</span><input type="text" data-cfg="baseFrame"></label>
+      <h3>Lidar mounting</h3>
+      <label class="field"><span>Rotation</span><input type="range" data-cfg="lidarYaw" min="-180" max="180" step="5"><output data-for="lidarYaw" data-unit="°" data-d="0"></output></label>
+      <p class="note">Used only when the transform from the robot frame to the lidar frame is not received. 0° means the lidar's forward matches the robot's forward.</p>
+      <div class="btnrow"><button class="btn danger" id="btnReset" type="button">Reset all settings</button></div>
+    </div>
+  </aside>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+'use strict';
+(() => {
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const fmt = (v, d = 2) => Number.isFinite(v) ? v.toFixed(d).replace('-', '\u2212') : '\u2014';
+const normAng = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+const deg = r => r * 180 / Math.PI, rad = d => d * Math.PI / 180;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const strip = s => String(s || '').replace(/^\//, '');
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
+};
+const yawOf = q => Math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z));
+const quat = yaw => ({ x: 0, y: 0, z: Math.sin(yaw / 2), w: Math.cos(yaw / 2) });
+const hex2rgb = h => { h = h.replace('#', ''); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; };
+const decodeB64 = str => { const bin = atob(str); const a = new Int8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i) << 24 >> 24; return a; };
+
+/* ---------- settings ---------- */
+const DEFAULTS = {
+  url: '', cmdVel: '/cmd_vel', scan: '/scan', odom: '/odometry/filtered', mapTopic: '/map',
+  goalPose: '/goal_pose', initialPose: '/initialpose', mapFrame: 'map', baseFrame: 'base_link',
+  lidarYaw: 0, maxLin: 0.15, maxAng: 0.8, assist: 'steer', stopDist: 0.30, slowDist: 0.70, cone: 35,
+  guard: true, guardDist: 0.25, mapDir: '', mapName: 'my_map', mapUrl: '', nudgeXY: 0.05, nudgeDeg: 3, dwell: 3,
+  showScan: true, showPlan: true, showCost: false, showParticles: false, showRooms: true, showGrid: true, follow: false
+};
+let cfg = { ...DEFAULTS, ...store.get('amr.cfg', {}) };
+const saveCfg = () => store.set('amr.cfg', cfg);
+const PLAN_TOPIC = '/plan', LOCAL_COST = '/local_costmap/costmap', PARTICLES = '/particle_cloud', AMCL = '/amcl_pose', NAV_STATUS = '/navigate_to_pose/_action/status';
+const MODE_CMD = '/amr/mode_cmd', MODE_STATUS = '/amr/mode_status';
+
+/* ---------- colors ---------- */
+const C = {};
+function readColors() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['paper', 'panel', 'ink', 'ink2', 'line', 'teal', 'orange', 'plum', 'red', 'amber', 'free', 'unknown', 'wall']) C[k] = cs.getPropertyValue('--' + k).trim();
+}
+readColors();
+const PAL = ['#4E8F6B', '#C58A1B', '#B4526E', '#4F6FB3', '#8A6BB0', '#2F8F9D', '#B0693A'];
+
+/* ---------- rosbridge client ---------- */
+class Bridge {
+  constructor() { this.ws = null; this.subs = new Map(); this.adv = new Map(); this.calls = new Map(); this.n = 0; this.state = 'offline'; this.onState = () => {}; this.retry = null; this.want = false; this.seen = {}; }
+  connect(url) { this.url = url; this.want = true; if (this.ws) { const o = this.ws; this.ws = null; try { o.close(); } catch (e) { /* ignore */ } } this._open(); }
+  _set(s) { this.state = s; this.onState(s); }
+  _open() {
+    clearTimeout(this.retry);
+    let ws;
+    try { ws = new WebSocket(this.url); } catch (e) { this._set('offline'); return; }
+    this.ws = ws; this._set('connecting');
+    ws.onopen = () => {
+      if (ws !== this.ws) return;
+      this._set('online');
+      for (const a of this.adv.values()) this._send({ op: 'advertise', topic: a.topic, type: a.type });
+      for (const s of this.subs.values()) this._sendSub(s);
+    };
+    ws.onmessage = e => this._msg(e.data);
+    ws.onclose = () => {
+      if (ws !== this.ws) return;
+      this._set('offline');
+      for (const c of this.calls.values()) { clearTimeout(c.t); c.rej(new Error('Connection lost')); }
+      this.calls.clear();
+      if (this.want) this.retry = setTimeout(() => this._open(), 2000);
+    };
+    ws.onerror = () => {};
+  }
+  _send(o) { if (this.ws && this.ws.readyState === 1) { this.ws.send(JSON.stringify(o)); return true; } return false; }
+  _sendSub(s) { const o = { op: 'subscribe', id: 'sub:' + s.topic, topic: s.topic, type: s.type, queue_length: s.queue || 1 }; if (s.throttle) o.throttle_rate = s.throttle; this._send(o); }
+  _msg(raw) {
+    let m; try { m = JSON.parse(raw); } catch (e) { return; }
+    if (m.op === 'publish') { const s = this.subs.get(m.topic); this.seen[m.topic] = performance.now(); if (s) { try { s.cb(m.msg); } catch (e) { console.error(m.topic, e); } } }
+    else if (m.op === 'service_response') { const c = this.calls.get(m.id); if (c) { clearTimeout(c.t); this.calls.delete(m.id); if (m.result === false) c.rej(new Error(typeof m.values === 'string' ? m.values : 'Service call failed')); else c.res(m.values || {}); } }
+  }
+  subscribe(topic, type, cb, o = {}) { const s = { topic, type, cb, throttle: o.throttle || 0, queue: o.queue || 1 }; this.subs.set(topic, s); this._sendSub(s); }
+  unsubscribe(topic) { if (this.subs.has(topic)) { this._send({ op: 'unsubscribe', id: 'sub:' + topic, topic }); this.subs.delete(topic); } }
+  unsubscribeAll() { for (const t of [...this.subs.keys()]) this.unsubscribe(t); }
+  advertise(topic, type) { this.adv.set(topic, { topic, type }); this._send({ op: 'advertise', topic, type }); }
+  publish(topic, type, msg) { if (!this.adv.has(topic)) this.advertise(topic, type); return this._send({ op: 'publish', topic, msg }); }
+  call(service, args = {}, timeout = 6000) {
+    return new Promise((res, rej) => {
+      const id = 'call:' + (++this.n);
+      const t = setTimeout(() => { this.calls.delete(id); rej(new Error('No answer from ' + service)); }, timeout);
+      this.calls.set(id, { res, rej, t });
+      if (!this._send({ op: 'call_service', id, service, args })) { clearTimeout(t); this.calls.delete(id); rej(new Error('Not connected')); }
+    });
+  }
+}
+const bridge = new Bridge();
+
+/* ---------- state ---------- */
+const S = {
+  robot: null, scan: null, scanAt: 0, odom: { v: 0, w: 0, at: 0 }, amcl: null, amclAt: 0, plan: [], particles: null,
+  map: null, local: null, navCode: 0, navId: '', goal: null, estop: false, nodes: [], mode: 'unknown',
+  spinUntil: 0, guardUntil: 0, cursor: null, dragging: false
+};
+let rooms = [], selRoom = null, draft = [];
+const tour = { active: false, queue: [], i: 0, stage: '', baseId: '', id: '', timer: null };
+
+/* ---------- toast ---------- */
+let toastT;
+function toast(msg, kind = '') { const t = $('#toast'); t.textContent = msg; t.className = 'toast ' + kind; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, kind ? 6000 : 3500); }
+const svcErr = (what, e) => toast(`${what}: ${e.message}`, 'err');
+
+/* ---------- TF ---------- */
+const TF = { frames: {} };
+function onTf(msg) {
+  for (const t of msg.transforms || []) {
+    const p = t.transform.translation;
+    TF.frames[strip(t.child_frame_id)] = { parent: strip(t.header.frame_id), x: p.x, y: p.y, th: yawOf(t.transform.rotation) };
+  }
+  S.robot = poseInMap(cfg.baseFrame);
+  dirty();
+}
+function poseInMap(frame) {
+  frame = strip(frame); const mf = strip(cfg.mapFrame);
+  let T = { x: 0, y: 0, th: 0 }, f = frame, n = 0;
+  while (f !== mf) {
+    const e = TF.frames[f]; if (!e || ++n > 12) return null;
+    const c = Math.cos(e.th), s = Math.sin(e.th);
+    T = { x: e.x + c * T.x - s * T.y, y: e.y + s * T.x + c * T.y, th: e.th + T.th };
+    f = e.parent;
+  }
+  T.th = normAng(T.th); return T;
+}
+
+/* ---------- topics ---------- */
+function applyTopics() {
+  bridge.unsubscribeAll();
+  bridge.advertise(cfg.cmdVel, 'geometry_msgs/msg/Twist');
+  bridge.advertise(cfg.goalPose, 'geometry_msgs/msg/PoseStamped');
+  bridge.advertise(cfg.initialPose, 'geometry_msgs/msg/PoseWithCovarianceStamped');
+  bridge.advertise(MODE_CMD, 'std_msgs/msg/String');
+  bridge.subscribe(MODE_STATUS, 'std_msgs/msg/String', m => setStackStatus(m.data), { queue: 1 });
+  bridge.subscribe('/tf', 'tf2_msgs/msg/TFMessage', onTf, { throttle: 33, queue: 5 });
+  bridge.subscribe('/tf_static', 'tf2_msgs/msg/TFMessage', onTf, { queue: 5 });
+  bridge.subscribe(cfg.scan, 'sensor_msgs/msg/LaserScan', onScan, { throttle: 100 });
+  bridge.subscribe(cfg.odom, 'nav_msgs/msg/Odometry', m => { S.odom = { v: m.twist.twist.linear.x, w: m.twist.twist.angular.z, at: performance.now() }; }, { throttle: 100 });
+  bridge.subscribe(AMCL, 'geometry_msgs/msg/PoseWithCovarianceStamped', m => { S.amcl = m; S.amclAt = performance.now(); });
+  bridge.subscribe(cfg.mapTopic, 'nav_msgs/msg/OccupancyGrid', m => ingestMap(m), { throttle: 1000 });
+  bridge.subscribe(NAV_STATUS, 'action_msgs/msg/GoalStatusArray', onStatus);
+  syncOptional();
+}
+function syncOptional() {
+  const want = (on, topic, type, cb, o) => { if (on) { if (!bridge.subs.has(topic)) bridge.subscribe(topic, type, cb, o); } else bridge.unsubscribe(topic); };
+  want(cfg.showPlan, PLAN_TOPIC, 'nav_msgs/msg/Path', m => { S.plan = (m.poses || []).map(p => [p.pose.position.x, p.pose.position.y]); dirty(); }, { throttle: 300 });
+  want(cfg.showCost, LOCAL_COST, 'nav_msgs/msg/OccupancyGrid', m => { const g = toGrid(m); if (g) { g.img = buildCostImg(g); S.local = g; dirty(); } }, { throttle: 500 });
+  want(cfg.showParticles, PARTICLES, 'nav2_msgs/msg/ParticleCloud', m => { S.particles = (m.particles || []).map(p => [p.pose.position.x, p.pose.position.y]); dirty(); }, { throttle: 500 });
+  if (!cfg.showCost) S.local = null;
+  if (!cfg.showParticles) S.particles = null;
+}
+
+/* ---------- scan + geometry ---------- */
+function onScan(m) {
+  const now = performance.now(); S.scanAt = now;
+  const fr = strip(m.header.frame_id), lp = poseInMap(fr), bp = S.robot;
+  let yawRel = rad(cfg.lidarYaw);
+  if (lp && bp && fr !== strip(cfg.baseFrame)) yawRel = normAng(lp.th - bp.th);
+  const origin = lp || (bp ? { x: bp.x, y: bp.y, th: bp.th + yawRel } : null);
+  const n = m.ranges.length, a = new Float32Array(n), r = new Float32Array(n), pts = [];
+  let k = 0;
+  const rmin = Math.max(m.range_min || 0, 0.05), rmax = m.range_max || 12;
+  for (let i = 0; i < n; i++) {
+    const v = m.ranges[i];
+    if (typeof v !== 'number' || !isFinite(v) || v < rmin || v > rmax) continue;
+    const ang = m.angle_min + i * m.angle_increment;
+    a[k] = normAng(ang + yawRel); r[k] = v; k++;
+    if (origin) pts.push(origin.x + v * Math.cos(origin.th + ang), origin.y + v * Math.sin(origin.th + ang));
+  }
+  S.scan = { pts: Float32Array.from(pts) };
+  S.beams = { n: k, a, r };
+  dirty(); drawRadar();
+}
+function minInCone(center, half) {
+  const B = S.beams; if (!B) return Infinity;
+  let m = Infinity;
+  for (let i = 0; i < B.n; i++) if (Math.abs(normAng(B.a[i] - center)) <= half && B.r[i] < m) m = B.r[i];
+  return m;
+}
+
+/* ---------- map ---------- */
+function toGrid(m) {
+  const info = m.info; if (!info || !m.data) return null;
+  let data = m.data; if (typeof data === 'string') data = decodeB64(data);
+  return { w: info.width, h: info.height, res: info.resolution, ox: info.origin.position.x, oy: info.origin.position.y, oth: yawOf(info.origin.orientation), data, frame: strip(m.header.frame_id) };
+}
+function buildMapImg(g) {
+  const cv = document.createElement('canvas'); cv.width = g.w; cv.height = g.h;
+  const x = cv.getContext('2d'), im = x.createImageData(g.w, g.h);
+  const u = hex2rgb(C.unknown), f = hex2rgb(C.free), wl = hex2rgb(C.wall);
+  const lut = []; for (let v = 0; v <= 100; v++) { const t = Math.min(1, v / 65); lut.push([f[0] + (wl[0] - f[0]) * t, f[1] + (wl[1] - f[1]) * t, f[2] + (wl[2] - f[2]) * t]); }
+  for (let row = 0; row < g.h; row++) for (let col = 0; col < g.w; col++) {
+    const v = g.data[row * g.w + col], o = ((g.h - 1 - row) * g.w + col) * 4;
+    const c = (v < 0 || v > 100) ? u : lut[v];
+    im.data[o] = c[0]; im.data[o + 1] = c[1]; im.data[o + 2] = c[2]; im.data[o + 3] = 255;
+  }
+  x.putImageData(im, 0, 0); return cv;
+}
+function buildCostImg(g) {
+  const cv = document.createElement('canvas'); cv.width = g.w; cv.height = g.h;
+  const x = cv.getContext('2d'), im = x.createImageData(g.w, g.h), o = hex2rgb(C.orange);
+  for (let row = 0; row < g.h; row++) for (let col = 0; col < g.w; col++) {
+    const v = g.data[row * g.w + col], p = ((g.h - 1 - row) * g.w + col) * 4;
+    if (v <= 0) continue;
+    im.data[p] = o[0]; im.data[p + 1] = o[1]; im.data[p + 2] = o[2]; im.data[p + 3] = v >= 99 ? 170 : 20 + v * 1.3;
+  }
+  x.putImageData(im, 0, 0); return cv;
+}
+function ingestMap(m) {
+  const g = toGrid(m); if (!g) return;
+  let known = 0, occ = 0;
+  for (let i = 0; i < g.data.length; i++) { const v = g.data[i]; if (v >= 0 && v <= 100) { known++; if (v >= 65) occ++; } }
+  g.known = known; g.occ = occ; g.img = buildMapImg(g);
+  const first = !S.map; S.map = g;
+  if (first) fitView();
+  dirty();
+}
+async function fetchMap(quiet) {
+  const order = S.mode === 'mapping' ? ['/slam_toolbox/dynamic_map', '/map_server/map'] : ['/map_server/map', '/slam_toolbox/dynamic_map'];
+  for (const svc of order) {
+    try { const r = await bridge.call(svc, {}, 10000); if (r && r.map) { ingestMap(r.map); return true; } } catch (e) { /* try next */ }
+  }
+  if (!quiet) toast('No map service answered. Start mapping or navigation on the laptop first.', 'warn');
+  return false;
+}
+function cellValue(x, y) {
+  const g = S.map; if (!g) return -1;
+  const dx = x - g.ox, dy = y - g.oy, c = Math.cos(-g.oth), s = Math.sin(-g.oth);
+  const u = dx * c - dy * s, v = dx * s + dy * c;
+  const col = Math.floor(u / g.res), row = Math.floor(v / g.res);
+  if (col < 0 || row < 0 || col >= g.w || row >= g.h) return -1;
+  return g.data[row * g.w + col];
+}
+function downloadMap() {
+  const g = S.map; if (!g) return toast('No map to download yet', 'warn');
+  const name = (cfg.mapName || 'map').trim() || 'map';
+  const head = new TextEncoder().encode(`P5\n# Saved from AMR console\n${g.w} ${g.h}\n255\n`);
+  const body = new Uint8Array(g.w * g.h);
+  for (let row = 0; row < g.h; row++) for (let col = 0; col < g.w; col++) {
+    const v = g.data[row * g.w + col];
+    body[(g.h - 1 - row) * g.w + col] = (v >= 0 && v >= 65) ? 0 : (v >= 0 && v <= 25) ? 254 : 205;
+  }
+  const pgm = new Uint8Array(head.length + body.length); pgm.set(head); pgm.set(body, head.length);
+  const yaml = `image: ${name}.pgm\nmode: trinary\nresolution: ${g.res}\norigin: [${g.ox}, ${g.oy}, ${g.oth}]\nnegate: 0\noccupied_thresh: 0.65\nfree_thresh: 0.25\n`;
+  saveBlob(new Blob([pgm], { type: 'image/x-portable-graymap' }), name + '.pgm');
+  setTimeout(() => saveBlob(new Blob([yaml], { type: 'text/yaml' }), name + '.yaml'), 300);
+}
+function saveBlob(blob, filename) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
+const mapPath = () => { const d = (cfg.mapDir || '').trim().replace(/\/+$/, ''); const n = (cfg.mapName || '').trim(); return (d.startsWith('/') && n) ? d + '/' + n : ''; };
+async function saveSlam() {
+  const p = mapPath(); if (!p) return toast('Enter the map name and the full folder path on the laptop (it starts with /).', 'warn');
+  try { const r = await bridge.call('/slam_toolbox/save_map', { name: { data: p } }, 20000); if (r.result !== undefined && r.result !== 0) throw new Error('slam_toolbox could not write the files. Check that the folder exists.'); toast(`Saved ${p}.pgm and ${p}.yaml`); addRecent(p + '.yaml'); }
+  catch (e) { svcErr('Save map', e); }
+}
+async function saveGraph() {
+  const p = mapPath(); if (!p) return toast('Enter the map name and the full folder path on the laptop first.', 'warn');
+  try { const r = await bridge.call('/slam_toolbox/serialize_map', { filename: p }, 20000); if (r.result !== undefined && r.result !== 0) throw new Error('Could not write the pose graph.'); toast(`Saved pose graph ${p}.posegraph`); }
+  catch (e) { svcErr('Save pose graph', e); }
+}
+async function loadMap() {
+  const url = (cfg.mapUrl || '').trim(); if (!url.startsWith('/')) return toast('Enter the full path of the map .yaml file on the laptop.', 'warn');
+  try {
+    const r = await bridge.call('/map_server/load_map', { map_url: url }, 15000);
+    if (r.result !== undefined && r.result !== 0) throw new Error(['', 'That file does not exist', 'The map .yaml is invalid', 'The map image is invalid'][r.result] || 'Could not load the map');
+    if (r.map) { S.map = null; ingestMap(r.map); }
+    cfg.mapName = url.split('/').pop().replace(/\.ya?ml$/i, ''); saveCfg(); syncInputs(); loadRooms(); addRecent(url);
+    toast('Map loaded. Now mark where the robot is on the map.'); showTab('loc'); setTool('pose');
+  } catch (e) { svcErr('Load map', e); }
+}
+function addRecent(p) { let r = store.get('amr.recent', []).filter(x => x !== p); r.unshift(p); store.set('amr.recent', r.slice(0, 6)); renderRecent(); }
+function renderRecent() {
+  const r = store.get('amr.recent', []), ul = $('#recentMaps'); ul.innerHTML = '';
+  for (const p of r) { const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button'; b.textContent = p; b.title = p; b.onclick = () => { cfg.mapUrl = p; saveCfg(); syncInputs(); }; li.appendChild(b); ul.appendChild(li); }
+}
+
+/* ---------- view ---------- */
+const canvas = $('#map'), ctx = canvas.getContext('2d'), stage = $('#stage');
+let cw = 0, ch = 0, dpr = 1, needDraw = true;
+const V = { tx: 0, ty: 0, s: 40 };
+const w2s = (x, y) => [V.s * x + V.tx, -V.s * y + V.ty];
+const s2w = (px, py) => [(px - V.tx) / V.s, -(py - V.ty) / V.s];
+function dirty() { needDraw = true; }
+function resize() { const r = stage.getBoundingClientRect(); dpr = window.devicePixelRatio || 1; cw = r.width; ch = r.height; canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr); dirty(); }
+new ResizeObserver(resize).observe(stage);
+function fitView() {
+  const g = S.map;
+  if (!g) { const r = S.robot; V.s = 40; V.tx = cw / 2 - (r ? r.x * V.s : 0); V.ty = ch / 2 + (r ? r.y * V.s : 0); dirty(); return; }
+  const W = g.w * g.res, H = g.h * g.res;
+  V.s = Math.max(2, Math.min(cw / W, ch / H) * 0.92);
+  const cx = g.ox + W / 2, cy = g.oy + H / 2; V.tx = cw / 2 - V.s * cx; V.ty = ch / 2 + V.s * cy; dirty();
+}
+function zoomAt(px, py, k) { const [wx, wy] = s2w(px, py); V.s = clamp(V.s * k, 2, 600); V.tx = px - V.s * wx; V.ty = py + V.s * wy; dirty(); }
+
+/* ---------- drawing ---------- */
+function drawGridImg(g, img) {
+  if (!img) return;
+  const F = g.frame === strip(cfg.mapFrame) ? { x: 0, y: 0, th: 0 } : poseInMap(g.frame); if (!F) return;
+  ctx.save();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.translate(V.tx, V.ty); ctx.scale(V.s, -V.s); ctx.translate(F.x, F.y); ctx.rotate(F.th);
+  ctx.translate(g.ox, g.oy); ctx.rotate(g.oth); ctx.translate(0, g.h * g.res); ctx.scale(g.res, -g.res);
+  ctx.imageSmoothingEnabled = false; ctx.drawImage(img, 0, 0);
+  ctx.restore();
+}
+function drawGridLines() {
+  const step = V.s < 3 ? 10 : V.s < 10 ? 5 : 1;
+  const [x0, y1] = s2w(0, 0), [x1, y0] = s2w(cw, ch);
+  ctx.save(); ctx.strokeStyle = C.ink; ctx.globalAlpha = 0.09; ctx.lineWidth = 1; ctx.beginPath();
+  for (let x = Math.ceil(x0 / step) * step; x <= x1; x += step) { const [sx] = w2s(x, 0); ctx.moveTo(Math.round(sx) + .5, 0); ctx.lineTo(Math.round(sx) + .5, ch); }
+  for (let y = Math.ceil(y0 / step) * step; y <= y1; y += step) { const [, sy] = w2s(0, y); ctx.moveTo(0, Math.round(sy) + .5); ctx.lineTo(cw, Math.round(sy) + .5); }
+  ctx.stroke(); ctx.restore();
+}
+function arrow(x, y, yaw, len, col, lw) {
+  const [sx, sy] = w2s(x, y), a = -yaw, ex = sx + len * Math.cos(a), ey = sy + len * Math.sin(a);
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - 9 * Math.cos(a - .45), ey - 9 * Math.sin(a - .45)); ctx.lineTo(ex - 9 * Math.cos(a + .45), ey - 9 * Math.sin(a + .45)); ctx.closePath(); ctx.fill();
+}
+function centroid(poly) {
+  let a = 0, cx = 0, cy = 0;
+  for (let i = 0; i < poly.length; i++) { const [x0, y0] = poly[i], [x1, y1] = poly[(i + 1) % poly.length], f = x0 * y1 - x1 * y0; a += f; cx += (x0 + x1) * f; cy += (y0 + y1) * f; }
+  if (Math.abs(a) < 1e-9) return [poly.reduce((s, p) => s + p[0], 0) / poly.length, poly.reduce((s, p) => s + p[1], 0) / poly.length];
+  return [cx / (3 * a), cy / (3 * a)];
+}
+function inPoly(x, y, poly) { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
+const roomStop = r => r.stop || (() => { const [x, y] = centroid(r.poly); return { x, y, yaw: 0 }; })();
+function drawRooms() {
+  ctx.save(); ctx.lineJoin = 'round';
+  for (const r of rooms) {
+    const sel = r.id === selRoom, pts = r.poly.map(p => w2s(p[0], p[1]));
+    ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath();
+    ctx.fillStyle = r.color + (sel ? '42' : '26'); ctx.fill(); ctx.strokeStyle = r.color; ctx.lineWidth = sel ? 3 : 1.5; ctx.stroke();
+    const [cx, cy] = centroid(r.poly), [sx, sy] = w2s(cx, cy);
+    ctx.font = `italic 500 ${clamp(V.s * 0.5, 13, 22)}px Newsreader, Georgia, serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 4; ctx.strokeStyle = C.paper; ctx.strokeText(r.name, sx, sy); ctx.fillStyle = C.ink; ctx.fillText(r.name, sx, sy);
+    if (sel || r.stop) { const s = roomStop(r); arrow(s.x, s.y, s.yaw, 20, r.color, 2.5); const [px, py] = w2s(s.x, s.y); ctx.fillStyle = r.color; ctx.beginPath(); ctx.arc(px, py, 4, 0, 7); ctx.fill(); }
+  }
+  ctx.restore();
+}
+function drawPlan() {
+  if (S.plan.length < 2) return;
+  ctx.save(); ctx.strokeStyle = C.teal; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.beginPath();
+  S.plan.forEach((p, i) => { const [x, y] = w2s(p[0], p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); ctx.restore();
+}
+function drawParticles() {
+  if (!S.particles) return; ctx.save(); ctx.fillStyle = C.plum; ctx.globalAlpha = .7;
+  for (const p of S.particles) { const [x, y] = w2s(p[0], p[1]); ctx.fillRect(x - 1, y - 1, 2.5, 2.5); } ctx.restore();
+}
+function drawScan() {
+  const P = S.scan && S.scan.pts; if (!P || performance.now() - S.scanAt > 1500) return;
+  ctx.save(); ctx.fillStyle = C.orange; ctx.globalAlpha = .85;
+  for (let i = 0; i < P.length; i += 2) { const [x, y] = w2s(P[i], P[i + 1]); ctx.fillRect(x - 1.5, y - 1.5, 3, 3); } ctx.restore();
+}
+function drawGoal() {
+  const g = S.goal; if (!g) return;
+  const [x, y] = w2s(g.x, g.y);
+  ctx.save(); ctx.strokeStyle = C.teal; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(x, y, 8, 0, 7); ctx.stroke(); ctx.restore();
+  arrow(g.x, g.y, g.yaw, 26, C.teal, 3);
+}
+function drawRobot() {
+  const r = S.robot; if (!r) return;
+  const [x, y] = w2s(r.x, r.y), R = clamp(V.s * 0.2, 9, 24);
+  if (S.amcl && performance.now() - S.amclAt < 20000) {
+    const c = S.amcl.pose.covariance, sd = Math.sqrt(Math.max(c[0], c[7], 0));
+    ctx.save(); ctx.strokeStyle = C.orange; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, Math.max(sd * 2 * V.s, R + 3), 0, 7); ctx.stroke(); ctx.restore();
+  }
+  ctx.save(); ctx.translate(x, y); ctx.rotate(-r.th);
+  ctx.beginPath(); ctx.moveTo(R * 1.25, 0); ctx.lineTo(-R * .85, R * .8); ctx.lineTo(-R * .4, 0); ctx.lineTo(-R * .85, -R * .8); ctx.closePath();
+  ctx.fillStyle = C.ink; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = C.orange; ctx.stroke(); ctx.restore();
+}
+function drawDraft() {
+  if (!draft.length) return; ctx.save(); ctx.strokeStyle = C.plum; ctx.fillStyle = C.plum; ctx.lineWidth = 2; ctx.beginPath();
+  draft.forEach((p, i) => { const [x, y] = w2s(p[0], p[1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+  if (S.cursor) { const [x, y] = w2s(S.cursor[0], S.cursor[1]); ctx.setLineDash([5, 5]); ctx.lineTo(x, y); }
+  ctx.stroke(); ctx.setLineDash([]);
+  for (const p of draft) { const [x, y] = w2s(p[0], p[1]); ctx.beginPath(); ctx.arc(x, y, 4, 0, 7); ctx.fill(); } ctx.restore();
+}
+function drawGesture() {
+  if (!gest || gest.type !== 'aim' || !gest.moved) return;
+  const yaw = Math.atan2(gest.w1[1] - gest.w0[1], gest.w1[0] - gest.w0[0]);
+  const col = tool === 'goal' ? C.teal : C.plum; const [x, y] = w2s(gest.w0[0], gest.w0[1]);
+  ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(x, y, 8, 0, 7); ctx.stroke(); ctx.restore();
+  arrow(gest.w0[0], gest.w0[1], yaw, 34, col, 3);
+}
+function drawScaleBar() {
+  const opts = [0.25, 0.5, 1, 2, 5, 10, 20]; let L = opts[0]; for (const o of opts) { L = o; if (o * V.s >= 60) break; }
+  const len = L * V.s, x = 16, y = ch - 40;
+  ctx.save(); ctx.strokeStyle = C.ink; ctx.fillStyle = C.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y - 5); ctx.lineTo(x, y); ctx.lineTo(x + len, y); ctx.lineTo(x + len, y - 5); ctx.stroke();
+  ctx.font = '600 12px Hanken Grotesk, sans-serif'; ctx.textBaseline = 'bottom'; ctx.fillText(L + ' m', x, y - 6); ctx.restore();
+}
+function draw() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = C.unknown; ctx.fillRect(0, 0, cw, ch);
+  if (cfg.follow && S.robot && !S.dragging) { V.tx = cw / 2 - V.s * S.robot.x; V.ty = ch / 2 + V.s * S.robot.y; }
+  if (S.map) drawGridImg(S.map, S.map.img);
+  if (cfg.showGrid) drawGridLines();
+  if (cfg.showCost && S.local) drawGridImg(S.local, S.local.img);
+  if (cfg.showRooms) drawRooms();
+  if (cfg.showPlan) drawPlan();
+  if (cfg.showParticles) drawParticles();
+  if (cfg.showScan) drawScan();
+  drawGoal(); drawRobot(); drawDraft(); drawGesture(); drawScaleBar();
+}
+(function loop() { if (needDraw) { needDraw = false; try { draw(); } catch (e) { console.error(e); } } requestAnimationFrame(loop); })();
+
+/* ---------- radar ---------- */
+const radar = $('#radar'), rctx = radar.getContext('2d');
+let radarLast = 0;
+function drawRadar(force) {
+  const now = performance.now(); if (!force && now - radarLast < 90) return; radarLast = now;
+  const rd = window.devicePixelRatio || 1, size = radar.clientWidth || 170;
+  if (radar.width !== Math.round(size * rd)) { radar.width = radar.height = Math.round(size * rd); }
+  const c = rctx, R = Math.max(1.5, cfg.slowDist * 2), k = (size / 2 - 6) / R, cx = size / 2, cy = size / 2;
+  c.setTransform(rd, 0, 0, rd, 0, 0); c.clearRect(0, 0, size, size);
+  c.strokeStyle = C.line; c.lineWidth = 1;
+  c.beginPath(); c.arc(cx, cy, R * k, 0, 7); c.stroke();
+  c.strokeStyle = C.amber; c.beginPath(); c.arc(cx, cy, cfg.slowDist * k, 0, 7); c.stroke();
+  c.strokeStyle = C.red; c.beginPath(); c.arc(cx, cy, cfg.stopDist * k, 0, 7); c.stroke();
+  const half = rad(cfg.cone);
+  for (const head of [0, Math.PI]) {
+    const d = minInCone(head, half), col = d <= cfg.stopDist ? C.red : d <= cfg.slowDist ? C.amber : C.teal;
+    c.fillStyle = col; c.globalAlpha = .16; c.beginPath(); c.moveTo(cx, cy);
+    c.arc(cx, cy, cfg.slowDist * k, -Math.PI / 2 + head - half, -Math.PI / 2 + head + half); c.closePath(); c.fill(); c.globalAlpha = 1;
+  }
+  const B = S.beams, fresh = B && now - S.scanAt < 800;
+  if (fresh) { c.fillStyle = C.orange; for (let i = 0; i < B.n; i++) { if (B.r[i] > R) continue; const x = cx - B.r[i] * Math.sin(B.a[i]) * k, y = cy - B.r[i] * Math.cos(B.a[i]) * k; c.fillRect(x - 1, y - 1, 2.4, 2.4); } }
+  c.fillStyle = C.ink; c.beginPath(); c.moveTo(cx, cy - 7); c.lineTo(cx - 5, cy + 5); c.lineTo(cx + 5, cy + 5); c.closePath(); c.fill();
+  const f = n => Number.isFinite(n) ? fmt(n, 2) : '\u2014';
+  $('#radarText').textContent = fresh ? `Front ${f(minInCone(0, rad(30)))} m · Rear ${f(minInCone(Math.PI, rad(30)))} m` : 'No lidar data';
+}
+
+/* ---------- commands ---------- */
+const pubTwist = (vx, wz) => bridge.publish(cfg.cmdVel, 'geometry_msgs/msg/Twist', { linear: { x: vx, y: 0, z: 0 }, angular: { x: 0, y: 0, z: wz } });
+function zeroBurst(n = 6) { for (let i = 0; i < n; i++) setTimeout(() => pubTwist(0, 0), i * 60); }
+const hdr = () => ({ frame_id: cfg.mapFrame, stamp: { sec: 0, nanosec: 0 } });
+function sendGoal(x, y, yaw, label) {
+  if (S.estop) return toast('Release the emergency stop first.', 'warn');
+  if (bridge.state !== 'online') return toast('Not connected to the robot.', 'warn');
+  cancelSpin();
+  bridge.publish(cfg.goalPose, 'geometry_msgs/msg/PoseStamped', { header: hdr(), pose: { position: { x, y, z: 0 }, orientation: quat(yaw) } });
+  S.goal = { x, y, yaw, label }; dirty(); $('#goalInfo').textContent = `Goal sent${label ? ' to ' + label : ''}: x ${fmt(x)}, y ${fmt(y)}, heading ${fmt(deg(yaw), 0)}°`;
+}
+function sendInitial(x, y, yaw, tight) {
+  if (S.estop) return toast('Release the emergency stop first.', 'warn');
+  const cov = new Array(36).fill(0), pxy = tight ? 0.02 : 0.25, pyaw = tight ? 0.01 : 0.07;
+  cov[0] = pxy; cov[7] = pxy; cov[35] = pyaw;
+  bridge.publish(cfg.initialPose, 'geometry_msgs/msg/PoseWithCovarianceStamped', { header: hdr(), pose: { pose: { position: { x, y, z: 0 }, orientation: quat(yaw) }, covariance: cov } });
+  toast(`Position set to x ${fmt(x)}, y ${fmt(y)}, heading ${fmt(deg(yaw), 0)}°`);
+}
+async function cancelGoal() {
+  try { await bridge.call('/navigate_to_pose/_action/cancel_goal', { goal_info: { goal_id: { uuid: new Array(16).fill(0) }, stamp: { sec: 0, nanosec: 0 } } }, 3000); } catch (e) { /* nothing running */ }
+  zeroBurst(3);
+}
+function setEstop(on) {
+  S.estop = on; $('#estopBanner').hidden = !on;
+  const b = $('#btnEstop'); b.textContent = on ? 'Stopped' : 'Emergency stop'; b.classList.toggle('latched', on);
+  if (on) { cancelSpin(); endTour(); zeroBurst(10); cancelGoal(); }
+}
+
+/* ---------- safety governor ---------- */
+function govern(vx, wz) {
+  const out = { vx, wz, limit: '' };
+  if (cfg.assist === 'off' || Math.abs(vx) < 0.001) return out;
+  if (!S.beams || performance.now() - S.scanAt > 700) { out.vx = 0; out.limit = 'No lidar data, so driving forward and backward is blocked.'; return out; }
+  const head = vx > 0 ? 0 : Math.PI, half = rad(cfg.cone), d = minInCone(head, half);
+  if (!isFinite(d)) return out;
+  const f = clamp((d - cfg.stopDist) / Math.max(0.01, cfg.slowDist - cfg.stopDist), 0, 1);
+  out.vx = vx * f;
+  if (f < 1) out.limit = f === 0 ? `Blocked: obstacle ${fmt(d)} m ${vx > 0 ? 'ahead' : 'behind'}` : `Slowing: obstacle ${fmt(d)} m ${vx > 0 ? 'ahead' : 'behind'}`;
+  if (cfg.assist === 'steer' && f < 1 && vx > 0) {
+    let L = 0, Rr = 0; const B = S.beams, wide = rad(85);
+    for (let i = 0; i < B.n; i++) {
+      const rel = normAng(B.a[i]); if (Math.abs(rel) > wide || B.r[i] > cfg.slowDist) continue;
+      const w = clamp((cfg.slowDist - B.r[i]) / Math.max(0.01, cfg.slowDist - cfg.stopDist), 0, 1);
+      if (rel > 0) L += w; else Rr += w;
+    }
+    if (L + Rr > 0.01) { const ratio = (L - Rr) / (L + Rr); out.wz = clamp(wz - ratio * (1 - f) * cfg.maxAng * 0.7, -cfg.maxAng, cfg.maxAng); out.limit += ', steering away'; }
+  }
+  return out;
+}
+function guardTick() {
+  if (!cfg.guard || S.estop) return;
+  const now = performance.now(); if (now < S.guardUntil || !S.beams || now - S.scanAt > 800 || now - S.odom.at > 800) return;
+  const v = S.odom.v; if (Math.abs(v) < 0.03) return;
+  const d = minInCone(v > 0 ? 0 : Math.PI, rad(cfg.cone));
+  if (d < cfg.guardDist) { S.guardUntil = now + 2000; zeroBurst(6); if (S.navCode === 1 || S.navCode === 2) cancelGoal(); endTour(); toast(`Guard stopped the robot: obstacle ${fmt(d)} m ${v > 0 ? 'ahead' : 'behind'}.`, 'warn'); }
+}
+
+/* ---------- teleop ---------- */
+const keys = new Set(), J = { x: 0, y: 0, on: false, id: null };
+const joy = $('#joy'), knob = $('#knob');
+function moveJoy(e) {
+  const r = joy.getBoundingClientRect(), R = r.width / 2; let dx = e.clientX - (r.left + R), dy = e.clientY - (r.top + R); const d = Math.hypot(dx, dy);
+  if (d > R) { dx *= R / d; dy *= R / d; } J.x = dx / R; J.y = -dy / R; knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+}
+joy.addEventListener('pointerdown', e => { joy.setPointerCapture(e.pointerId); J.on = true; J.id = e.pointerId; moveJoy(e); });
+joy.addEventListener('pointermove', e => { if (J.on && e.pointerId === J.id) moveJoy(e); });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) joy.addEventListener(ev, e => { if (e.pointerId !== J.id) return; releaseJoy(); });
+function releaseJoy() { J.on = false; J.x = J.y = 0; knob.style.transform = 'translate(-50%, -50%)'; }
+const dz = v => Math.abs(v) < 0.1 ? 0 : (v - Math.sign(v) * 0.1) / 0.9;
+const typing = () => /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement && document.activeElement.tagName) && document.activeElement.type !== 'range' && document.activeElement.type !== 'checkbox';
+window.addEventListener('keydown', e => {
+  if (typing()) return; const k = e.key.toLowerCase();
+  if (k === ' ') { e.preventDefault(); if (!e.repeat) setEstop(true); return; }
+  if (k === 'enter' && tool === 'room') { finishDraft(); return; }
+  if (k === 'escape') { cancelDraft(); setTool('pan'); return; }
+  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) { e.preventDefault(); keys.add(k); }
+});
+window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+function releaseAll() { keys.clear(); releaseJoy(); }
+document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
+window.addEventListener('blur', releaseAll);
+let driving = false;
+function cancelSpin() { S.spinUntil = 0; $('#btnSpin').textContent = 'Spin to converge'; }
+function driveTick() {
+  const now = performance.now();
+  if (S.estop) { pubTwist(0, 0); return; }
+  if (S.spinUntil > now) { pubTwist(0, 0.6); return; }
+  if (S.spinUntil && S.spinUntil <= now) { cancelSpin(); pubTwist(0, 0); }
+  let vx = dz(J.y) * cfg.maxLin, wz = -dz(J.x) * cfg.maxAng;
+  if (keys.has('w') || keys.has('arrowup')) vx += cfg.maxLin;
+  if (keys.has('s') || keys.has('arrowdown')) vx -= cfg.maxLin;
+  if (keys.has('a') || keys.has('arrowleft')) wz += cfg.maxAng;
+  if (keys.has('d') || keys.has('arrowright')) wz -= cfg.maxAng;
+  vx = clamp(vx, -cfg.maxLin, cfg.maxLin); wz = clamp(wz, -cfg.maxAng, cfg.maxAng);
+  const want = Math.abs(vx) > 1e-3 || Math.abs(wz) > 1e-3;
+  if (want) {
+    if (!driving) { driving = true; if (S.navCode === 1 || S.navCode === 2) cancelGoal(); endTour(); }
+    const g = govern(vx, wz); pubTwist(g.vx, g.wz);
+    $('#vxText').textContent = fmt(g.vx); $('#wzText').textContent = fmt(g.wz); $('#limitText').textContent = g.limit;
+  } else if (driving) { driving = false; zeroBurst(4); $('#vxText').textContent = '0.00'; $('#wzText').textContent = '0.00'; $('#limitText').textContent = ''; }
+}
+
+/* ---------- navigation status + tour ---------- */
+const NAV_LABEL = { 0: 'Idle', 1: 'Goal accepted', 2: 'Navigating', 3: 'Canceling', 4: 'Arrived', 5: 'Canceled', 6: 'Failed' };
+function onStatus(m) {
+  const list = m.status_list || []; if (!list.length) return;
+  const last = list[list.length - 1]; S.navCode = last.status;
+  S.navId = ((last.goal_info && last.goal_info.goal_id && last.goal_info.goal_id.uuid) || []).join(',');
+  tourStep();
+}
+function tourStep() {
+  const T = tour; if (!T.active) return;
+  if (T.stage === 'sent' && S.navId !== T.baseId && [1, 2, 4].includes(S.navCode)) { T.stage = 'running'; T.id = S.navId; }
+  if (T.stage === 'running' && S.navId === T.id) {
+    if (S.navCode === 4) { T.stage = 'dwell'; $('#tourText').textContent = `Arrived at ${roomName(T.queue[T.i])}. Waiting ${cfg.dwell} s.`; T.timer = setTimeout(tourNext, cfg.dwell * 1000); }
+    else if (S.navCode === 5 || S.navCode === 6) endTour(`Tour stopped: the robot could not reach ${roomName(T.queue[T.i])}.`);
+  }
+}
+const roomName = id => { const r = rooms.find(x => x.id === id); return r ? r.name : 'the room'; };
+function tourGo() { const r = rooms.find(x => x.id === tour.queue[tour.i]); if (!r) return endTour('Tour stopped: a room was removed.'); const s = roomStop(r); tour.stage = 'sent'; tour.baseId = S.navId; sendGoal(s.x, s.y, s.yaw, r.name); $('#tourText').textContent = `Heading to ${r.name} (${tour.i + 1} of ${tour.queue.length}).`; }
+function tourNext() { tour.i++; if (tour.i >= tour.queue.length) return endTour('Tour finished.'); tourGo(); }
+function startTour() {
+  if (tour.active) return; const q = rooms.filter(r => r.tour).map(r => r.id);
+  if (!q.length) return toast('Tick "Tour" on at least one room.', 'warn');
+  Object.assign(tour, { active: true, queue: q, i: 0 }); tourGo();
+}
+function endTour(msg) { if (!tour.active) return; clearTimeout(tour.timer); tour.active = false; tour.stage = ''; $('#tourText').textContent = msg || ''; if (msg) toast(msg); }
+
+/* ---------- rooms ---------- */
+function loadRooms() { rooms = store.get('amr.rooms.' + cfg.mapName, []); selRoom = null; renderRooms(); dirty(); }
+const saveRooms = () => store.set('amr.rooms.' + cfg.mapName, rooms);
+function renderRooms() {
+  $('#roomMapName').textContent = cfg.mapName || '(unnamed)';
+  const ul = $('#roomList'); ul.innerHTML = '';
+  if (!rooms.length) { ul.innerHTML = '<li class="note" style="border:0">No rooms yet. Choose "Draw a room", click the corners on the map, then finish.</li>'; return; }
+  for (const r of rooms) {
+    const li = document.createElement('li'); li.dataset.id = r.id; if (r.id === selRoom) li.className = 'sel';
+    li.innerHTML = `<div class="roomtop"><span class="sw" style="background:${r.color}"></span><input type="text" value="${esc(r.name)}" aria-label="Room name" data-act="name"></div>
+      <div class="roomact"><button class="btn sm primary" data-act="go" type="button">Go</button><button class="btn sm" data-act="here" type="button">Stop point: here</button><button class="btn sm" data-act="aim" type="button">Aim stop point</button><button class="btn sm danger" data-act="del" type="button">Remove</button>
+      <label class="tour"><input type="checkbox" data-act="tour" ${r.tour ? 'checked' : ''}> Tour</label></div>`;
+    ul.appendChild(li);
+  }
+}
+$('#roomList').addEventListener('click', e => {
+  const li = e.target.closest('li[data-id]'); if (!li) return; const r = rooms.find(x => x.id === li.dataset.id); if (!r) return;
+  const act = e.target.dataset.act;
+  if (selRoom !== r.id && act !== 'name') { selRoom = r.id; renderRooms(); dirty(); }
+  if (act === 'go') { const s = roomStop(r); if (!r.stop && cellValue(s.x, s.y) !== 0) toast('The default stop point is not on free floor. Use "Stop point: here" or "Aim stop point".', 'warn'); sendGoal(s.x, s.y, s.yaw, r.name); }
+  else if (act === 'here') { if (!S.robot) return toast('Robot position unknown.', 'warn'); r.stop = { x: S.robot.x, y: S.robot.y, yaw: S.robot.th }; saveRooms(); dirty(); toast(`Stop point for ${r.name} saved.`); }
+  else if (act === 'aim') { selRoom = r.id; setTool('roompose'); }
+  else if (act === 'del') { rooms = rooms.filter(x => x !== r); if (selRoom === r.id) selRoom = null; saveRooms(); renderRooms(); dirty(); }
+  else if (!act) { selRoom = r.id; renderRooms(); dirty(); }
+});
+$('#roomList').addEventListener('input', e => { const li = e.target.closest('li[data-id]'), r = li && rooms.find(x => x.id === li.dataset.id); if (r && e.target.dataset.act === 'name') { r.name = e.target.value; saveRooms(); dirty(); } });
+$('#roomList').addEventListener('change', e => { const li = e.target.closest('li[data-id]'), r = li && rooms.find(x => x.id === li.dataset.id); if (r && e.target.dataset.act === 'tour') { r.tour = e.target.checked; saveRooms(); } });
+function finishDraft() {
+  if (draft.length < 3) return toast('A room needs at least three corners.', 'warn');
+  const id = 'r' + Date.now().toString(36); rooms.push({ id, name: 'Room ' + (rooms.length + 1), color: PAL[rooms.length % PAL.length], poly: draft.slice(), stop: null, tour: true });
+  selRoom = id; draft = []; setTool('pan'); saveRooms(); showTab('rooms'); renderRooms(); dirty();
+  const inp = $(`li[data-id="${id}"] input[type=text]`); if (inp) { inp.focus(); inp.select(); }
+}
+function cancelDraft() { draft = []; $('#roomFinish').hidden = true; dirty(); }
+$('#btnRoomDone').onclick = finishDraft; $('#btnRoomUndo').onclick = () => { draft.pop(); syncFinish(); dirty(); }; $('#btnRoomCancel').onclick = () => { cancelDraft(); setTool('pan'); };
+const syncFinish = () => { $('#roomFinish').hidden = !(tool === 'room' && draft.length > 0); };
+$('#btnDrawRoom').onclick = () => { setTool('room'); };
+$('#btnExportRooms').onclick = () => saveBlob(new Blob([JSON.stringify({ map: cfg.mapName, rooms }, null, 2)], { type: 'application/json' }), (cfg.mapName || 'map') + '-rooms.json');
+$('#btnImportRooms').onclick = () => $('#fileRooms').click();
+$('#fileRooms').onchange = e => {
+  const f = e.target.files[0]; if (!f) return; const rd = new FileReader();
+  rd.onload = () => { try { const j = JSON.parse(rd.result), list = Array.isArray(j) ? j : j.rooms; if (!Array.isArray(list)) throw 0; rooms = list.filter(r => r && Array.isArray(r.poly) && r.poly.length >= 3).map((r, i) => ({ id: r.id || 'r' + i + Date.now().toString(36), name: String(r.name || 'Room'), color: r.color || PAL[i % PAL.length], poly: r.poly, stop: r.stop || null, tour: r.tour !== false })); saveRooms(); renderRooms(); dirty(); toast(`Imported ${rooms.length} rooms.`); } catch (x) { toast('That file is not a rooms export.', 'err'); } };
+  rd.readAsText(f); e.target.value = '';
+};
+
+/* ---------- tools + pointer ---------- */
+let tool = 'pan', gest = null;
+const HINTS = {
+  pan: 'Drag to move the map. Scroll or pinch to zoom.',
+  goal: 'Press where the robot should go, then drag to set the way it faces. Release to send.',
+  pose: 'Press where the robot really is, then drag toward the way it faces. Release to apply.',
+  room: 'Click each corner of the room. Double-click or press Enter to finish. Esc cancels.',
+  roompose: 'Press the stop point for the selected room, then drag to set the heading.'
+};
+function setTool(t) {
+  tool = t; gest = null; if (t !== 'room') { draft = []; } 
+  $$('.tools [data-tool]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tool === (t === 'roompose' ? 'room' : t))));
+  $('#hint').textContent = HINTS[t]; canvas.style.cursor = t === 'pan' ? 'grab' : 'crosshair'; syncFinish(); dirty();
+}
+$$('.tools [data-tool]').forEach(b => b.onclick = () => setTool(b.dataset.tool));
+$('#btnFit').onclick = fitView;
+const ptrs = new Map(); let pinch = null;
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('pointerdown', e => {
+  canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
+  if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), s: V.s }; gest = null; S.dragging = true; return; }
+  if (ptrs.size > 2) return;
+  const w = s2w(e.offsetX, e.offsetY);
+  if (tool === 'pan' || e.button === 1 || e.button === 2 || e.shiftKey) { gest = { type: 'pan', x: e.offsetX, y: e.offsetY, tx: V.tx, ty: V.ty }; S.dragging = true; canvas.style.cursor = 'grabbing'; }
+  else if (tool === 'room') gest = { type: 'click', x: e.offsetX, y: e.offsetY, w };
+  else gest = { type: 'aim', x: e.offsetX, y: e.offsetY, w0: w, w1: w, moved: false };
+});
+canvas.addEventListener('pointermove', e => {
+  const p = ptrs.get(e.pointerId); if (p) { p.x = e.offsetX; p.y = e.offsetY; }
+  S.cursor = s2w(e.offsetX, e.offsetY); $('#cursorText').textContent = `x ${fmt(S.cursor[0])}  y ${fmt(S.cursor[1])}`;
+  if (pinch && ptrs.size >= 2) {
+    const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    const [wx, wy] = s2w(mx, my); V.s = clamp(pinch.s * d / Math.max(1, pinch.d), 2, 600); V.tx = mx - V.s * wx; V.ty = my + V.s * wy; dirty(); return;
+  }
+  if (gest && gest.type === 'pan') { V.tx = gest.tx + e.offsetX - gest.x; V.ty = gest.ty + e.offsetY - gest.y; if (cfg.follow && Math.hypot(e.offsetX - gest.x, e.offsetY - gest.y) > 6) { cfg.follow = false; saveCfg(); syncInputs(); } dirty(); }
+  else if (gest && gest.type === 'aim') { gest.w1 = S.cursor; if (Math.hypot(e.offsetX - gest.x, e.offsetY - gest.y) > 6) gest.moved = true; dirty(); }
+  else if (tool === 'room' && draft.length) dirty();
+});
+function endPtr(e, cancel) {
+  ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null;
+  if (ptrs.size > 0) return;
+  S.dragging = false; canvas.style.cursor = tool === 'pan' ? 'grab' : 'crosshair';
+  const g = gest; gest = null; if (!g || cancel) { dirty(); return; }
+  if (g.type === 'click') { if (Math.hypot(e.offsetX - g.x, e.offsetY - g.y) < 6) { draft.push(g.w); syncFinish(); } }
+  else if (g.type === 'aim') {
+    let yaw; const [x, y] = g.w0;
+    if (g.moved) yaw = Math.atan2(g.w1[1] - y, g.w1[0] - x); else yaw = tool === 'goal' && S.robot ? Math.atan2(y - S.robot.y, x - S.robot.x) : (S.robot ? S.robot.th : 0);
+    if (tool === 'goal') { sendGoal(x, y, yaw); setTool('pan'); }
+    else if (tool === 'pose') { sendInitial(x, y, yaw, false); setTool('pan'); }
+    else if (tool === 'roompose') { const r = rooms.find(z => z.id === selRoom); if (r) { r.stop = { x, y, yaw }; saveRooms(); toast(`Stop point for ${r.name} saved.`); } setTool('pan'); }
+  }
+  dirty();
+}
+canvas.addEventListener('pointerup', e => endPtr(e, false));
+canvas.addEventListener('pointercancel', e => endPtr(e, true));
+canvas.addEventListener('dblclick', e => { if (tool === 'room') { if (draft.length >= 2) { const a = draft[draft.length - 1], b = draft[draft.length - 2]; if (Math.hypot(a[0] - b[0], a[1] - b[1]) * V.s < 8) draft.pop(); } finishDraft(); } });
+canvas.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.offsetX, e.offsetY, Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
+
+/* ---------- tabs + settings ---------- */
+function showTab(id) {
+  $$('.tabs [role=tab]').forEach(t => t.setAttribute('aria-selected', String(t.id === 't-' + id)));
+  $$('.side .panel').forEach(p => { p.hidden = p.id !== 'p-' + id; });
+  if (id === 'safe') { getInflation(); getNavSpeedLimits(); }
+}
+$$('.tabs [role=tab]').forEach(t => t.onclick = () => showTab(t.id.slice(2)));
+function refreshOutputs() { $$('output[data-for]').forEach(o => { const v = cfg[o.dataset.for]; o.textContent = Number(v).toFixed(Number(o.dataset.d || 2)) + (o.dataset.unit || ''); }); }
+function syncInputs() {
+  $$('[data-cfg]').forEach(i => { const v = cfg[i.dataset.cfg]; if (i.type === 'checkbox') i.checked = !!v; else if (document.activeElement !== i) i.value = v; });
+  refreshOutputs(); $('#roomMapName').textContent = cfg.mapName || '(unnamed)';
+}
+const TOPIC_KEYS = new Set(['cmdVel', 'scan', 'odom', 'mapTopic', 'goalPose', 'initialPose', 'mapFrame', 'baseFrame']);
+$$('[data-cfg]').forEach(i => {
+  const k = i.dataset.cfg;
+  i.addEventListener(i.type === 'range' || i.type === 'checkbox' || i.tagName === 'SELECT' ? 'input' : 'change', () => {
+    cfg[k] = i.type === 'checkbox' ? i.checked : (i.type === 'range' || i.dataset.num) ? Number(i.value) : i.value.trim();
+    saveCfg(); refreshOutputs();
+    if (TOPIC_KEYS.has(k)) { if (k === 'mapFrame' || k === 'baseFrame') TF.frames = {}; applyTopics(); }
+    if (k === 'mapName') loadRooms();
+    if (['showPlan', 'showCost', 'showParticles'].includes(k)) syncOptional();
+    dirty(); drawRadar(true);
+  });
+});
+$('#btnReset').onclick = () => { if (confirm('Reset all settings on this page? Saved rooms are kept.')) { try { localStorage.removeItem('amr.cfg'); } catch (e) { /* ignore */ } location.reload(); } };
+
+/* ---------- connection UI ---------- */
+const urlInput = $('#wsUrl');
+urlInput.value = cfg.url || `ws://${location.hostname || 'localhost'}:9090`;
+$('#linkForm').addEventListener('submit', e => { e.preventDefault(); cfg.url = urlInput.value.trim(); saveCfg(); bridge.connect(cfg.url); });
+bridge.onState = st => {
+  const map = { online: 'Connected', connecting: 'Connecting', offline: 'Offline' };
+  $('#linkDot').className = 'dot ' + st; $('#linkText').textContent = map[st] || st;
+  if (st === 'online') onOnline();
+};
+async function onOnline() {
+  applyTopics(); await pollNodes(); if (!S.map) fetchMap(true);
+}
+async function pollNodes() {
+  if (bridge.state !== 'online') return;
+  try {
+    const r = await bridge.call('/rosapi/nodes', {}, 3000); S.nodes = (r.nodes || []).map(strip);
+    const slam = S.nodes.some(n => n.includes('slam_toolbox')), amcl = S.nodes.some(n => n.includes('amcl'));
+    S.mode = slam ? 'mapping' : amcl ? 'navigation' : 'idle';
+  } catch (e) { S.mode = 'unknown'; }
+  const label = { mapping: 'Mapping', navigation: 'Navigating', idle: 'No SLAM or localization running', unknown: 'Mode unknown' }[S.mode];
+  $('#modeText').textContent = label;
+  $('#modeHint').textContent = { mapping: 'slam_toolbox is running. Drive around, then save the map.', navigation: 'Nav2 localization is running. Load a map here if you want to switch maps.', idle: 'Start mapping.launch.py to build a map, or navigation.launch.py to use one.', unknown: 'Could not read the running nodes. Check that rosbridge is running with rosapi.' }[S.mode];
+}
+
+/* ---------- Nav2 obstacle tools ---------- */
+const COSTMAPS = ['/local_costmap/local_costmap', '/global_costmap/global_costmap'];
+async function getInflation() {
+  try { const r = await bridge.call(COSTMAPS[0] + '/get_parameters', { names: ['inflation_layer.inflation_radius'] }, 3000); const v = r.values && r.values[0]; if (v && typeof v.double_value === 'number' && v.double_value > 0) { $('#inflate').value = v.double_value; $('#inflateOut').textContent = v.double_value.toFixed(2) + ' m'; } } catch (e) { /* keep default */ }
+}
+$('#inflate').addEventListener('input', e => { $('#inflateOut').textContent = Number(e.target.value).toFixed(2) + ' m'; });
+$('#inflateOut').textContent = '0.30 m';
+$('#btnInflate').onclick = async () => {
+  const v = Number($('#inflate').value); let ok = 0, bad = '';
+  for (const n of COSTMAPS) {
+    try { const r = await bridge.call(n + '/set_parameters', { parameters: [{ name: 'inflation_layer.inflation_radius', value: { type: 3, double_value: v } }] }, 4000); if (r.results && r.results[0] && r.results[0].successful) ok++; else bad = (r.results && r.results[0] && r.results[0].reason) || 'rejected'; } catch (e) { bad = e.message; }
+  }
+  toast(ok === 2 ? `Keep-away set to ${v.toFixed(2)} m on both costmaps. It resets when Nav2 restarts.` : `Applied to ${ok} of 2 costmaps${bad ? ': ' + bad : ''}`, ok === 2 ? '' : 'warn');
+};
+async function getNavSpeedLimits() {
+  try {
+    const r = await bridge.call('/controller_server/get_parameters', { names: ['FollowPath.max_vel_x', 'FollowPath.max_vel_theta'] }, 3000);
+    const [a, b] = r.values || [];
+    if (a && typeof a.double_value === 'number' && a.double_value > 0) { $('#navSpeed').value = a.double_value; $('#navSpeedOut').textContent = a.double_value.toFixed(2) + ' m/s'; }
+    if (b && typeof b.double_value === 'number' && b.double_value > 0) { $('#navTurn').value = b.double_value; $('#navTurnOut').textContent = b.double_value.toFixed(2) + ' rad/s'; }
+  } catch (e) { /* keep defaults */ }
+}
+$('#navSpeed').addEventListener('input', e => { $('#navSpeedOut').textContent = Number(e.target.value).toFixed(2) + ' m/s'; });
+$('#navTurn').addEventListener('input', e => { $('#navTurnOut').textContent = Number(e.target.value).toFixed(2) + ' rad/s'; });
+$('#navSpeedOut').textContent = '0.30 m/s';
+$('#navTurnOut').textContent = '1.50 rad/s';
+$('#btnNavSpeed').onclick = async () => {
+  const v = Number($('#navSpeed').value), w = Number($('#navTurn').value);
+  const d = (name, x) => ({ name, value: { type: 3, double_value: x } });
+  try {
+    const r = await bridge.call('/controller_server/set_parameters', { parameters: [d('FollowPath.max_vel_x', v), d('FollowPath.max_speed_xy', v), d('FollowPath.max_vel_theta', w)] }, 4000);
+    const bad = (r.results || []).find(x => !x.successful);
+    toast(bad ? 'Controller rejected a value: ' + (bad.reason || 'unknown reason') : `Controller limited to ${v.toFixed(2)} m/s and ${w.toFixed(2)} rad/s. It resets when Nav2 restarts.`, bad ? 'warn' : '');
+  } catch (e) { toast('Could not reach the controller_server: ' + e.message, 'err'); }
+};
+$('#btnClearCost').onclick = async () => {
+  let ok = 0;
+  for (const s of ['/local_costmap/clear_entirely_local_costmap', '/global_costmap/clear_entirely_global_costmap']) { try { await bridge.call(s, {}, 4000); ok++; } catch (e) { /* skip */ } }
+  toast(ok ? `Cleared ${ok} costmap${ok > 1 ? 's' : ''}.` : 'Could not reach the costmaps. Is Nav2 running?', ok ? '' : 'err');
+};
+
+/* ---------- buttons ---------- */
+$('#btnEstop').onclick = () => setEstop(!S.estop);
+$('#btnRelease').onclick = () => setEstop(false);
+$('#btnGoXY').onclick = () => sendGoal(Number($('#goalX').value) || 0, Number($('#goalY').value) || 0, rad(Number($('#goalYaw').value) || 0));
+$('#btnCancelGoal').onclick = () => { cancelGoal(); endTour(); toast('Goal canceled.'); };
+$('#btnFillHere').onclick = () => { if (!S.robot) return toast('Robot position unknown.', 'warn'); $('#goalX').value = S.robot.x.toFixed(2); $('#goalY').value = S.robot.y.toFixed(2); $('#goalYaw').value = Math.round(deg(S.robot.th)); };
+$('#btnPoseTool').onclick = () => setTool('pose');
+$('#btnGlobal').onclick = async () => { try { await bridge.call('/reinitialize_global_localization', {}, 5000); toast('Estimate scattered across the map. Spin the robot to let it converge.'); } catch (e) { svcErr('Relocalize', e); } };
+$('#btnSpin').onclick = () => { if (S.estop) return toast('Release the emergency stop first.', 'warn'); if (S.spinUntil > performance.now()) { cancelSpin(); zeroBurst(4); return; } S.spinUntil = performance.now() + 11000; $('#btnSpin').textContent = 'Stop spinning'; };
+$$('[data-nudge]').forEach(b => b.onclick = () => {
+  const [kind, sign] = b.dataset.nudge.split(':'), r = S.robot; if (!r) return toast('Robot position unknown yet.', 'warn');
+  let { x, y, th } = r; const sg = Number(sign);
+  if (kind === 'x') x += cfg.nudgeXY * sg; else if (kind === 'y') y += cfg.nudgeXY * sg; else th = normAng(th + rad(cfg.nudgeDeg) * sg);
+  sendInitial(x, y, th, true);
+});
+$('#btnSaveSlam').onclick = saveSlam; $('#btnSaveGraph').onclick = saveGraph; $('#btnDownload').onclick = downloadMap;
+$('#btnLoadMap').onclick = loadMap; $('#btnRefreshMap').onclick = async () => { S.map = null; if (await fetchMap()) toast('Map refreshed.'); };
+
+/* ---------- launch-manager mode control ---------- */
+let stackStatusAt = 0;
+function setStackStatus(text) {
+  stackStatusAt = performance.now();
+  const nice = { idle: 'Idle. EKF is running in the background; mapping and navigation are stopped.', mapping: 'Mapping is running.', navigation: 'Navigation is running.', stopping: 'Stopping the current stack…', starting_mapping: 'Starting mapping…', starting_navigation: 'Starting navigation…' }[text];
+  $('#stackStatus').textContent = nice || (text.startsWith('error') ? text : text);
+  $('#stackStatus').style.color = text.startsWith('error') ? 'var(--red)' : '';
+}
+setInterval(() => { if (stackStatusAt && performance.now() - stackStatusAt > 15000) $('#stackStatus').textContent = 'No status from the launch-manager node. Is it running alongside rosbridge?'; }, 4000);
+$('#btnStartMapping').onclick = () => { bridge.publish(MODE_CMD, 'std_msgs/msg/String', { data: 'mapping' }); setStackStatus('starting_mapping'); };
+$('#btnStartNav').onclick = () => {
+  const p = (cfg.mapUrl || '').trim();
+  if (!p.startsWith('/')) return toast('Set the map file (full path on the laptop) above first.', 'warn');
+  bridge.publish(MODE_CMD, 'std_msgs/msg/String', { data: 'navigation:' + p }); setStackStatus('starting_navigation');
+};
+$('#btnStopStack').onclick = () => { bridge.publish(MODE_CMD, 'std_msgs/msg/String', { data: 'idle' }); setStackStatus('stopping'); };
+$('#btnTour').onclick = startTour; $('#btnTourStop').onclick = () => { endTour('Tour stopped.'); cancelGoal(); };
+async function copyText(t) { try { await navigator.clipboard.writeText(t); toast('Copied.'); } catch (e) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast('Copied.'); } catch (x) { toast('Select and copy the command by hand.', 'warn'); } ta.remove(); } }
+$('#btnCopyRb').onclick = () => copyText('ros2 launch rosbridge_server rosbridge_websocket_launch.xml');
+
+/* ---------- periodic UI ---------- */
+function uiTick() {
+  const r = S.robot; let room = '';
+  if (r) { const hit = rooms.find(x => inPoly(r.x, r.y, x.poly)); if (hit) room = ' · ' + hit.name; }
+  $('#poseText').textContent = r ? `x ${fmt(r.x)}  y ${fmt(r.y)}  ${fmt(deg(r.th), 0)}°${room}` : 'Position unknown';
+  let nav = NAV_LABEL[S.navCode] || 'Idle';
+  if (S.goal && r && (S.navCode === 1 || S.navCode === 2)) nav += ` · ${fmt(Math.hypot(S.goal.x - r.x, S.goal.y - r.y), 1)} m to go`;
+  $('#navText').textContent = nav;
+  $('#mvText').textContent = fmt(S.odom.v);
+  // localization quality
+  const fill = $('#locFill'), txt = $('#locText');
+  if (S.mode === 'mapping') { fill.style.width = '100%'; fill.style.background = 'var(--teal)'; txt.textContent = 'slam_toolbox is tracking the robot while it builds the map.'; }
+  else if (S.amcl && performance.now() - S.amclAt < 30000) {
+    const c = S.amcl.pose.covariance, sxy = Math.sqrt(Math.max(c[0], c[7], 0)), syaw = deg(Math.sqrt(Math.max(c[35], 0)));
+    const q = sxy < 0.15 && syaw < 8 ? 'good' : sxy < 0.4 && syaw < 20 ? 'fair' : 'poor';
+    fill.style.width = (q === 'good' ? 100 : q === 'fair' ? 55 : 20) + '%'; fill.style.background = q === 'good' ? 'var(--green)' : q === 'fair' ? 'var(--amber)' : 'var(--red)';
+    txt.textContent = `${q[0].toUpperCase() + q.slice(1)}. Uncertainty about ${fmt(sxy * 100, 0)} cm and ${fmt(syaw, 0)}°.` + (q === 'poor' ? ' Set the position on the map or relocalize.' : '');
+  } else { fill.style.width = '0'; txt.textContent = S.mode === 'navigation' ? 'No estimate yet. Set the robot\'s position on the map.' : 'Waiting for a position estimate.'; }
+  // map stats
+  const g = S.map;
+  $('#mapStats').textContent = g ? `${g.w} × ${g.h} cells at ${fmt(g.res * 100, 1)} cm. Explored ${fmt(g.known * g.res * g.res, 1)} m², of which walls cover ${fmt(g.occ * g.res * g.res, 1)} m².` : 'No map received yet.';
+  // health
+  if (!$('#p-setup').hidden) {
+    const items = [['Transforms', '/tf'], ['Lidar scan', cfg.scan], ['Odometry', cfg.odom], ['Map', cfg.mapTopic], ['Position estimate', AMCL], ['Navigation status', NAV_STATUS]], now = performance.now();
+    $('#health').innerHTML = items.map(([n, t]) => { const s = bridge.seen[t], age = s ? (now - s) / 1000 : null; const ok = age !== null && age < 5; return `<li><span>${esc(n)} <small>${esc(t)}</small></span><span class="${ok ? 'ok' : 'bad'}">${ok ? 'receiving' : age === null ? 'no data' : 'silent ' + age.toFixed(0) + ' s'}</span></li>`; }).join('');
+  }
+  drawRadar(true);
+}
+
+/* ---------- init ---------- */
+setInterval(driveTick, 100);
+setInterval(guardTick, 100);
+setInterval(uiTick, 300);
+setInterval(pollNodes, 6000);
+window.addEventListener('beforeunload', () => { try { pubTwist(0, 0); } catch (e) { /* ignore */ } });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColors(); if (S.map) S.map.img = buildMapImg(S.map); if (S.local) S.local.img = buildCostImg(S.local); dirty(); });
+syncInputs(); renderRecent(); loadRooms(); setTool('pan'); resize(); fitView();
+bridge.connect(urlInput.value.trim());
+})();
+</script>
+</body>
+</html>

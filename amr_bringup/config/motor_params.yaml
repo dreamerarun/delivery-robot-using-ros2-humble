@@ -1,0 +1,15 @@
+motor_driver_node:
+  ros__parameters:
+    wheel_separation: 0.18      # metres, distance between left/right wheel centers — MEASURE and correct
+    wheel_radius: 0.0325        # metres, BO motor wheel radius — MEASURE and correct
+    max_wheel_speed: 0.35       # m/s at 100% duty — tune empirically (time the robot over 1m at full duty)
+    min_duty_cycle: 35.0        # % duty cycle where the motor just starts turning — tune empirically
+    cmd_timeout: 0.5            # seconds with no /cmd_vel before auto-stop
+
+    left_pwm_pin: 12
+    left_in1_pin: 5
+    left_in2_pin: 6
+    right_pwm_pin: 13
+    right_in3_pin: 19
+    right_in4_pin: 26
+    pwm_frequency: 1000
